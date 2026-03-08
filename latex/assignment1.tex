@@ -1,0 +1,186 @@
+\documentclass[11pt]{article}
+
+% Packages
+\usepackage[utf8]{inputenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+
+% Document info
+\title{Deep Learning - Assignment 1}
+\author{Sebastian Nickels - snickels3@gatech.edu}
+
+\begin{document}
+
+\maketitle
+
+\section{Theory Problem Set}
+
+\newpage
+
+\subsection*{1. Problem}
+We have the softmax function $$s_i(z) = \frac{e^{z_i}}{\sum_k e^{z_k}}$$
+
+We want to know $$\frac{\partial s}{\partial z}$$
+
+For that, we will look at $$\frac{\partial s_i}{\partial z}$$
+
+Which consists of $$\frac{\partial s_i}{\partial z_j}$$
+
+$$\frac{\partial s_i}{\partial z_i} = \frac{\partial }{\partial z_i} \left(\frac{e^{z_i}}{\sum_k e^{z_k}}\right)$$
+
+Set $G = \sum_k e^{z_k}$
+
+There are two cases:
+
+First case: $i = j$:
+
+\begin{align*}
+\frac{\partial s_i}{\partial z_i} &= \frac{\partial }{\partial z_i} (\frac{e^{z_i}}{G}) \\
+&= \frac{e^{z_i} G - e^{z_i} e^{z_i}}{G^2} & \text{(quotient rule)}  \\
+&= \frac{e^{z_i}(G - e^{z_i})}{G^2} \\
+&= \frac{e^{z_i}}{G^2}(G - e^{z_i}) \\
+&= \frac{e^{z_i}}{G^2} \frac{G}{G} (G - e^{z_i}) \\
+&= \frac{e^{z_i}}{G^2} G (1 - \frac{e^{z_i}}{G}) \\
+&= \frac{e^{z_i}}{G} (1 - \frac{e^{z_i}}{G}) \\
+&= s_i (1 - s_i) \\
+\end{align*}
+
+Second case: $i \neq j$:
+\begin{align*}
+\frac{\partial s_i}{\partial z_i} &= \frac{\partial }{\partial z_i} (\frac{e^{z_i}}{G}) \\
+&= \frac{0 e^{z_j} - e^{z_i} e^{z_j}}{G^2} & \text{(quotient rule)} \\
+&= - \frac{e^{z_i} e^{z_j}}{G^2} \\
+&= - \frac{e^{z_i}}{G} \frac{e^{z_j}}{G} \\
+&= - s_i s_j \\
+\end{align*}
+
+These two cases can be combined using the Kronecker delta $\delta_{ij}$:
+$$\frac{\partial s_i}{\partial z_j} = s_i (\delta_{ij} - s_j)$$
+
+Which leads to the result:
+$$
+\frac{\partial \mathbf{s}}{\partial \mathbf{z}}
+=
+\begin{bmatrix}
+s_1(1 - s_1) & -s_1 s_2 & \cdots & -s_1 s_n \\
+-s_2 s_1 & s_2(1 - s_2) & \cdots & -s_2 s_n \\
+\vdots & \vdots & \ddots & \vdots \\
+-s_n s_1 & -s_n s_2 & \cdots & s_n(1 - s_n)
+\end{bmatrix}
+$$
+
+\newpage
+
+\subsection*{2. Problem}
+$$
+w_{\text{AND}} =
+\begin{pmatrix}
+1 \\
+1
+\end{pmatrix}
+$$
+
+$$
+b_{\text{AND}} = -1.5
+$$
+
+$$
+w_{\text{OR}} =
+\begin{pmatrix}
+1 \\
+1
+\end{pmatrix}
+$$
+$$
+b_{\text{OR}} = -0.5
+$$
+
+I chose the same weight vector for both, but basically just change the bias depending on the function, as f = 1 for AND needs basically more positive values and is a subset of OR.
+
+\newpage
+
+\subsection*{3. Problem}
+Let's prove this by trying to solve the linear equation system:
+1. 
+\begin{align*}
+x = (0, 0) &\Rightarrow w_1 \cdot 0 + w_2 \cdot 0 + b < 0 &\text{as } f(x) = 0 \\
+&\Rightarrow b < 0 \\
+\end{align*}
+
+2.
+\begin{align*}
+x = (0, 1) &\Rightarrow w_1 \cdot 0 + w_2 \cdot 1 + b \geq 0 &\text{as } f(x) = 1 \\
+&\Rightarrow w_2 + b \geq 0 \\
+&\Rightarrow w_2 \geq -b \\
+\end{align*}
+
+3.
+\begin{align*}
+x = (1, 0) &\Rightarrow w_1 \cdot 1 + w_2 \cdot 0 + b \geq 0 &\text{as } f(x) = 1 \\
+&\Rightarrow w_1 + b \geq 0 \\
+&\Rightarrow w_1 \geq -b \\
+\end{align*}
+
+4.
+\begin{align*}
+x = (1, 1) &\Rightarrow w_1 \cdot 1 + w_2 \cdot 1 + b < 0 &\text{as } f(x) = 0 \\
+&\Rightarrow w_1 + w_2 + b < 0 \\
+&\Rightarrow w_1 + w_2 < -b \\
+\end{align*}
+
+Take 2 and 3
+\begin{align*}
+w_2 \geq -b \land w_1 \geq -b &\Rightarrow w_1 + w_2 \geq -b + -b \\
+&\Rightarrow w_1 + w_2 \geq -2b \
+\end{align*}
+
+This is incompatible with 4, as it would require
+
+$$w_1 + w_2 \ge -2b > -b > w_1 + w_2$$
+
+As we have $b < 0$, and even without that constraint, we cannot have $w_1 + w_2 > w_1 + w_2$.
+
+Therefore we showed that there XOR can not be represented using a linear model, as there is no linear combination of weights (and bias) that separates them, which can be also seen when plotting them into a graph and trying to draw a line that separates those two classes perfectly (it won't work).
+
+\newpage
+
+\section{Paper Review}
+For this section, I reviewed the paper "Understanding deep learning requires rethinking generalization" by Chiyuan Zhang, Samy Bengio, Moritz Hardt, Benjamin Recht, Oriol Vinyals.
+
+Short review:
+
+In this section, you must choose one of the papers below and complete the
+following:
+1. provide a short review of the paper,
+2. answer paper-specific questions,
+Guidelines: Please restrict your reviews to no more than 350 words and
+answers to questions to no more than 350 words per question. The review
+part (1) should include answers to the following:
+3. What is the main contribution of this paper? In other words, briefly
+summarize its key insights. What are some strengths and weaknesses
+of this paper?
+4. What is your personal takeaway from this paper? This could be ex-
+pressed either in terms of your perceived novelty of this paper compared
+to others you’ve read in the field, potential future directions of research
+in the area that the authors haven’t addressed, or anything else that
+struck you as being noteworthy
+
+The second paper is again one that questions conventional wisdom and shows
+that large neural networks can actually fit random labels, that is labels that
+remain fixed but, for example, have no relationship to what is actually in the
+image. The paper title is “Understanding deep learning requires rethinking
+generalization” and can be found here.
+Questions for this paper:
+• If neural networks can “memorize” the data, which is the only thing
+they can do for random label assignments that don’t correlate with
+patterns in the data, why do you think neural networks learn more
+meaningful, generalizable representations when there are meaningful
+patterns in the data?
+• How does this finding align or not align with your understanding of
+machine learning and generalization?
+
+\section{Report}
+% WIP
+
+\end{document}
