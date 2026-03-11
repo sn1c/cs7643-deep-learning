@@ -303,3 +303,9 @@ TSWLatexianTemp*
 #*Notes.bib
 
 *.DS_Store
+
+__pycache__/
+.ipynb_checkpoints/
+.pytest_cache/
+cifar-10-python.tar.gz
+cifar-10-batches-py
