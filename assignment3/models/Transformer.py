@@ -71,9 +71,8 @@ class TransformerTranslator(nn.Module):
         # You will need to use the max_length parameter above.                       #
         # Don’t worry about sine/cosine encodings- use positional encodings.         #
         ##############################################################################
-        self.embeddingL = None      #initialize word embedding layer
-        self.posembeddingL = None   #initialize positional embedding layer
-
+        self.embeddingL = nn.Embedding(self.input_size, self.word_embedding_dim)
+        self.posembeddingL = nn.Embedding(self.max_length, self.word_embedding_dim)        
         ##############################################################################
         #                               END OF YOUR CODE                             #
         ##############################################################################
@@ -98,13 +97,17 @@ class TransformerTranslator(nn.Module):
         self.attention_head_projection = nn.Linear(self.dim_v * self.num_heads, self.hidden_dim)
         self.norm_mh = nn.LayerNorm(self.hidden_dim)
 
-        
         ##############################################################################
         # TODO:
         # Deliverable 3: Initialize what you need for the feed-forward layer.        # 
         # Don't forget the layer normalization.                                      #
         ##############################################################################
-        
+        self.fc = nn.Sequential(
+            nn.Linear(self.hidden_dim, self.dim_feedforward),
+            nn.ReLU(),
+            nn.Linear(self.dim_feedforward, self.hidden_dim)
+        )
+        self.norm_fc = nn.LayerNorm(self.hidden_dim)
         ##############################################################################
         #                               END OF YOUR CODE                             #
         ##############################################################################
@@ -114,7 +117,7 @@ class TransformerTranslator(nn.Module):
         # TODO:
         # Deliverable 4: Initialize what you need for the final layer (1-2 lines).   #
         ##############################################################################
-        
+        self.fc2 = nn.Linear(self.hidden_dim, self.output_size)
         ##############################################################################
         #                               END OF YOUR CODE                             #
         ##############################################################################
@@ -135,8 +138,11 @@ class TransformerTranslator(nn.Module):
         # Deliverable 5: Implement the full Transformer stack for the forward pass. #
         # You will need to use all of the methods you have previously defined above.#
         # You should only be calling TransformerTranslator class methods here.      #
-        #############################################################################
-        outputs = None      #remove this line when you start implementing your code
+        #############################################################################        
+        embed = self.embed(inputs)
+        attn = self.multi_head_attention(embed)
+        fc = self.feedforward_layer(attn)
+        outputs = self.final_layer(fc)
         
         ##############################################################################
         #                               END OF YOUR CODE                             #
@@ -154,8 +160,15 @@ class TransformerTranslator(nn.Module):
         # Deliverable 1: Return the embeddings.                                     #
         # This will take a few lines.                                               #
         #############################################################################
-      
-        embeddings = None       #remove this line when you start implementing your code
+        n = inputs.shape[0]
+        
+        word_embedding = self.embeddingL(inputs)
+        
+        pos_input = torch.tensor(list(range(0, self.max_length))).unsqueeze(0).repeat(n, 1).to(self.device)
+
+        pos_embedding = self.posembeddingL(pos_input)
+        
+        embeddings = word_embedding + pos_embedding
         ##############################################################################
         #                               END OF YOUR CODE                             #
         ##############################################################################
@@ -170,14 +183,27 @@ class TransformerTranslator(nn.Module):
         This is a simplified implementation.
         """
         
-        
         #############################################################################
         # TODO:
         # Deliverable 2: Implement multi-head self-attention followed by add + norm.#
         # Use the provided 'Deliverable 2' layers initialized in the constructor.   #
-        #############################################################################
-        outputs = None      #remove this line when you start implementing your code
+        #############################################################################        
+        k1 = self.k1(inputs)
+        v1 = self.v1(inputs)
+        q1 = self.q1(inputs)
         
+        attn1 = self.softmax(q1 @ k1.transpose(1, 2) / np.sqrt(self.dim_k)) @ v1
+        
+        k2 = self.k2(inputs)
+        v2 = self.v2(inputs)
+        q2 = self.q2(inputs)
+        
+        attn2 = self.softmax(q2 @ k2.transpose(1, 2) / np.sqrt(self.dim_k)) @ v2
+        
+        attn = torch.concat([attn1, attn2], dim=-1)
+        
+        proj = self.attention_head_projection(attn)
+        outputs = self.norm_mh(inputs + proj)
         ##############################################################################
         #                               END OF YOUR CODE                             #
         ##############################################################################
@@ -197,8 +223,8 @@ class TransformerTranslator(nn.Module):
         # initialized them.                                                         #
         # This should not take more than 3-5 lines of code.                         #
         #############################################################################
-        outputs = None      #remove this line when you start implementing your code
-        
+        fc = self.fc(inputs)
+        outputs = self.norm_fc(inputs + fc)
         ##############################################################################
         #                               END OF YOUR CODE                             #
         ##############################################################################
@@ -217,8 +243,7 @@ class TransformerTranslator(nn.Module):
         # This should only take about 1 line of code. Softmax is not needed here    #
         # as it is integrated as part of cross entropy loss function.               #
         #############################################################################
-        outputs = None      #remove this line when you start implementing your code
-                
+        outputs = self.fc2(inputs)
         ##############################################################################
         #                               END OF YOUR CODE                             #
         ##############################################################################
@@ -248,7 +273,15 @@ class FullTransformerTranslator(nn.Module):
         # Deliverable 1: Initialize what you need for the Transformer Layer          #
         # You should use nn.Transformer                                              #
         ##############################################################################
-
+        self.transformer = nn.Transformer(
+            d_model=self.word_embedding_dim,
+            nhead=self.num_heads,
+            num_encoder_layers=num_layers_enc,
+            num_decoder_layers=num_layers_dec,
+            dim_feedforward=self.dim_feedforward,
+            dropout=dropout,
+            batch_first=True,
+        )
         ##############################################################################
         # TODO:
         # Deliverable 2: Initialize what you need for the embedding lookup.          #
@@ -257,15 +290,15 @@ class FullTransformerTranslator(nn.Module):
         # Don’t worry about sine/cosine encodings- use positional encodings.         #
         ##############################################################################
         # Do not change the order for these variables
-        self.srcembeddingL = None       #embedding for src
-        self.tgtembeddingL = None       #embedding for target
-        self.srcposembeddingL = None    #embedding for src positional encoding
-        self.tgtposembeddingL = None    #embedding for target positional encoding
+        self.srcembeddingL = nn.Embedding(self.input_size, self.word_embedding_dim)
+        self.tgtembeddingL = nn.Embedding(self.output_size, self.word_embedding_dim)
+        self.srcposembeddingL = nn.Embedding(self.max_length, self.word_embedding_dim)
+        self.tgtposembeddingL = nn.Embedding(self.max_length, self.word_embedding_dim)
         ##############################################################################
         # TODO:
         # Deliverable 3: Initialize what you need for the final layer.               #
         ##############################################################################
-
+        self.final = nn.Linear(self.word_embedding_dim, self.output_size)
         ##############################################################################
         #                               END OF YOUR CODE                             #
         ##############################################################################
@@ -283,19 +316,37 @@ class FullTransformerTranslator(nn.Module):
         # TODO:
         # Deliverable 4: Implement the full Transformer stack for the forward pass. #
         #############################################################################
-        outputs=None
         # shift tgt to right, add one <sos> to the beginning and shift the other tokens to right
         tgt = self.add_start_token(tgt)
 
-
         # embed src and tgt for processing by transformer
+        n = src.shape[0]
+        pos_input = torch.tensor(list(range(0, self.max_length))).unsqueeze(0).repeat(n, 1).to(self.device)
+        
+        src_word_embedding = self.srcembeddingL(src)
+        src_pos_embedding = self.srcposembeddingL(pos_input)
+        
+        src_embedding = src_word_embedding + src_pos_embedding
+
+        tgt_word_embedding = self.tgtembeddingL(tgt)
+        tgt_pos_embedding = self.tgtposembeddingL(pos_input)
+        
+        tgt_embedding = tgt_word_embedding + tgt_pos_embedding
 
         # create target mask and target key padding mask for decoder - Both have boolean values
-
+        tgt_mask = self.transformer.generate_square_subsequent_mask(self.max_length).to(self.device)
+        tgt_key_padding_mask = (tgt == self.pad_idx).to(self.device)
+        
         # invoke transformer to generate output
+        transformer_out = self.transformer(
+            src_embedding,
+            tgt_embedding,
+            tgt_mask=tgt_mask,
+            tgt_key_padding_mask=tgt_key_padding_mask
+        )
 
         # pass through final layer to generate outputs
-
+        outputs = self.final(transformer_out)
         ##############################################################################
         #                               END OF YOUR CODE                             #
         ##############################################################################
@@ -316,11 +367,19 @@ class FullTransformerTranslator(nn.Module):
         # Deliverable 5: You will be calling the transformer forward function to    #
         # generate the translation for the input.                                   #
         #############################################################################
-        outputs = None      #remove this line when you start implementing your code
-        tgt=None            #used as an temporary variable to keep track of predicted tokens
         # initially set outputs as a tensor of zeros with dimensions (batch_size, seq_len, output_size)
+        outputs = torch.zeros(src.shape[0], self.max_length, self.output_size).to(self.device)
         # initially set tgt as a tensor of <pad> tokens with dimensions (batch_size, seq_len)
+        tgt = torch.full((src.shape[0], self.max_length), self.pad_idx).to(self.device)
+        tgt[:, 0] = src[:, 0]
 
+        for t in range(0, self.max_length):
+            step_outputs = self.forward(src, tgt)
+            
+            outputs[:, t, :] = step_outputs[:, t]
+            if t + 1 < self.max_length:
+                tgt[:, t + 1] = step_outputs[:, t].argmax(dim=-1)
+            
         ##############################################################################
         #                               END OF YOUR CODE                             #
         ##############################################################################

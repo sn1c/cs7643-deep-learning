@@ -111,8 +111,11 @@ class Decoder(nn.Module):
         # cosine_similarity = numerator / denominator
         
         cosine_similarity = nn.functional.cosine_similarity(hidden, encoder_outputs, dim=-1)
-        
         attention_prob = nn.functional.softmax(cosine_similarity, dim=-1).unsqueeze(1)
+        
+        # print(f"{encoder_outputs.shape=}")
+        # print(f"{cosine_similarity.shape=}")
+        # print(f"{attention_prob.shape=}")
         #############################################################################
         #                              END OF YOUR CODE                             #
         #############################################################################
@@ -166,7 +169,7 @@ class Decoder(nn.Module):
             concat = torch.concat([context, x], dim=-1)
             x = self.linear_attn(concat)
             
-        output, hidden = self.recurrent(x)
+        output, hidden = self.recurrent(x, hidden)
         
         output = self.linear_output(output).squeeze(1)
         #############################################################################

@@ -100,16 +100,16 @@ class Encoder(nn.Module):
         #       If model_type is LSTM, the hidden variable returns a tuple          #
         #       containing both the hidden state and the cell state of the LSTM.    #
         #############################################################################
-        
         x = self.embedding(input)
         x = self.dropout(x)
         output, hidden = self.recurrent(x)
         
         if self.model_type == "LSTM":
             h_t, c_t = hidden
+            
             hidden = (torch.tanh(self.linear(h_t)), c_t)
         else:
-            hidden = torch.tanh(self.linear(hidden))
+            hidden = torch.tanh(self.linear(hidden))            
         
         #############################################################################
         #                              END OF YOUR CODE                             #
