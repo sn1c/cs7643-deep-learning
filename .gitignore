@@ -303,9 +303,39 @@ TSWLatexianTemp*
 #*Notes.bib
 
 *.DS_Store
+.DS_Store
 
+# Python
 __pycache__/
-.ipynb_checkpoints/
+*.pyc
+*.pyo
 .pytest_cache/
+venv/
+.venv/
+*.egg-info/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data files
 cifar-10-python.tar.gz
-cifar-10-batches-py
+cifar-10-batches-py/
+*.csv
+*.npy
+
+# Model checkpoints
+*.pth
+checkpoints/
+
+# Archives / submissions
+*.zip
+*.tar.gz
+
+# Keynote templates
+*.key
+
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+*.swo
